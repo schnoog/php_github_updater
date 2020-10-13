@@ -1,0 +1,4 @@
+<?php
+
+$github_account['user'] = "";          // Only needed if rate limiter hits,should be no problem with f.e. 1 update / h
+$github_account['pass'] = "";   // therefore not needed
