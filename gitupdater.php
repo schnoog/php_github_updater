@@ -55,6 +55,7 @@ if(file_exists('mygitpw.php')) include_once('mygitpw.php');
  * Let the magic happen and caputre requests
  * 
  */
+$hasaction = false;
 if ($capture_requests){  
   if(isset($_REQUEST['updateaction'])){
 
@@ -71,13 +72,16 @@ if ($capture_requests){
           if($_REQUEST['updateaction'] == "check"){
             CheckCommits($user,$repo,false,$target_directory);
             $use_own_gui = false;
+            $hasaction = true;
           }
           if($_REQUEST['updateaction'] == "update"){
             CheckCommits($user,$repo,true,$target_directory);
             $use_own_gui = false;
+            $hasaction = true;
           }
           if($_REQUEST['updateaction'] == "clear"){
             DirectOut("",true,true);
+            $hasaction = true;
           }          
   }
 
@@ -89,13 +93,14 @@ if($use_own_gui) {
   
   ShowGUI();
 }else{
-  CheckCommits($user,$repo,$do_update,$target_directory);
+  if(!$hasaction)  CheckCommits($user,$repo,$do_update,$target_directory);
 }
 /**
  * 
  * 
  */
 function QuickStart($user,$repo,$do_update,$dir = __DIR__){
+  global $commit_completed;
     $tmp = CheckCommits($user,$repo,$do_update,$dir);
     if(count($tmp)>0){
           if($do_update){
