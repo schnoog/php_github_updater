@@ -9,6 +9,7 @@ It's really easy, all you need to do is:
 Adjust the following settings according to your demands
  * `$user` the repository owner
  * `$repo` name of the repository
+ * `$branch` name of the branch. If no value is set ("") the script will determine the default branch at Github
  * `$do_update` to `true` if available updates should be installed, otherwise chose `false` (only relevant to manual usage)
  * `$target_directory`  directory with the files to update (if the script is in the main project path `__DIR__` will do the trick)
  * `$write_output` Defines if the current progress is written in the file `$write_output_file` (`true` or `false`)
