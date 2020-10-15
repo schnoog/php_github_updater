@@ -10,7 +10,7 @@
  * GitHub limits the unauthorized requests to 60 per hour, afterwards you'll get blocked
  * For develeopment reasons it's proposed to set the $github_account variables to fit your GitHub account data
  * 
- * The script captures a list of commits from api.github.com
+ * The script captures a list of commits from api.github.com made to the branch defined below
  * It will than start with the newest commit and caputure the checksums of the files changed
  * If the checksums of at least one file from the commit doesn't match with the one of the local available file, 
  * the file will be added to the list and the next (older) commit will be inspected and so on.
@@ -20,7 +20,7 @@
  * 
  * If files need to be updatd, the script will (provided $do_update is set to true )
  * Version A: Copy each single file from github and replaces the local version
- * Version B: Download the master.zip from the Github repository and unzip it in the directory
+ * Version B: Download the branch.zip from the Github repository and unzip it in the directory
  * 
  * 
  * 
@@ -31,6 +31,7 @@
  */
 $user = "schnoog";                // The Github user which owns the repository https://github.com/schnoog/
 $repo = "testrepo";               // The repository name https://github.com/schnoog/php_github_updater
+$branch = "";                     // the branch (keep empty to use the default branch)
 $do_update = true;                // Should updates be applied
 $target_directory = __DIR__;      // The root directory of the projects local installation __DIR__ if this script is placed along the other files
 $write_output = true;             // Should the steps performed be written into $write_output_file
@@ -50,7 +51,10 @@ $use_own_gui = true;              // Should the own (included, barebone) GUI be 
 $github_account['user'] = "";          
 $github_account['pass'] = "";   
 if(file_exists('mygitpw.php')) include_once('mygitpw.php');
-
+/**
+ * Branch setting
+ */
+if(strlen($branch)<1) GetBranch($user,$repo);
 /**
  * Let the magic happen and caputre requests
  * 
@@ -197,12 +201,13 @@ function DownloadMissingFiles($user,$repo,$not_matching,$commit_completed,$dir =
   DirectOut("Step 3: Perform the update");
   DirectOut("by ");
       if($commit_completed){
+        $branch = GetBranch($user,$repo);
         $toUpdate = count($not_matching);
         DirectOut("replacing individually $toUpdate files",false);
         DirectOut("   Progress: ");
         foreach($not_matching as $sha => $filename){
           DirectOut("*",false);
-          $remoteurl = "https://raw.githubusercontent.com/$user/$repo/master/$filename";
+          $remoteurl = "https://raw.githubusercontent.com/$user/$repo/$branch/$filename";
           $filetmp = getSslPage($remoteurl);
           file_put_contents($dir . DIRECTORY_SEPARATOR . $filename,$filetmp);
           }
@@ -265,18 +270,20 @@ return $commits;
  *
  */
 function DownloadMasterZipAndUnpack($user,$repo,$dir=__DIR__){
-  if(!file_exists("master.zip")){
-  $remoteurl = "https://github.com/$user/$repo/archive/master.zip";
+  $branch = GetBranch($user,$repo);
+
+  if(!file_exists($branch . ".zip")){
+  $remoteurl = "https://github.com/$user/$repo/archive/".$branch.".zip";
   DirectOut("-Downloading $remoteurl");
   $filetmp = getSslPage($remoteurl,true);
-  file_put_contents("master.zip",$filetmp);
+  file_put_contents($branch .".zip",$filetmp);
   }
-  $len=strlen($repo . "-master/");
+  $len=strlen($repo . "-" .$branch . "/");
 
   if(is_dir('./unpack_temp_dir')) rrmdir('./unpack_temp_dir');
   mkdir('./unpack_temp_dir');
   $zip = new ZipArchive;
-  if ($zip->open('master.zip') === TRUE) {
+  if ($zip->open($branch .'.zip') === TRUE) {
       DirectOut("-Create temporary directory and unpack the archive");
       $zip->extractTo('./unpack_temp_dir/');
       DirectOut($zip->numFiles . " files unpacked, start to copy them");
@@ -294,15 +301,25 @@ function DownloadMasterZipAndUnpack($user,$repo,$dir=__DIR__){
       }
       $zip->close();
       DirectOut("Files copied");
-      unlink('master.zip');
+      unlink($branch . '.zip');
       rrmdir('./unpack_temp_dir');
       DirectOut("Update completed");
   } else {
       echo 'Fehler';
   }
 }
-
-
+/**
+ * 
+ */
+function GetBranch($user,$repo){
+  global $branch;
+  if(strlen($branch)>0) return $branch;
+  $callurl = "https://api.github.com/repos/$user/$repo";
+  $tmp = getSslPage($callurl );
+  $repodata = json_decode($tmp,true);
+  $branch = $repodata['default_branch'];
+  return $branch;
+}
 
 
 
@@ -399,7 +416,7 @@ function rrmdir($dir) {
  * 
  */
 function ShowGUI(){
-  global $write_output_file, $write_output, $user,$repo,$scripturl,$usage_password;
+  global $write_output_file, $write_output, $user,$repo,$scripturl,$usage_password, $branch;
   ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -410,7 +427,7 @@ function ShowGUI(){
 
     <title>php Github Updater - github.com/<?php echo $user . "/" . $repo ;?></title>
 
-    <meta name="description" content="Update local installed apps directly from github master repository">
+    <meta name="description" content="Update local installed apps directly from github repository">
     <meta name="author" content="Schnoog">
 
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
@@ -424,10 +441,10 @@ function ShowGUI(){
 			<div class="jumbotron">
       <center>
 				<h2>
-					php Github updater<br />Repository <a href="https://github.com/<?php echo $user . "/" . $repo ;?>" target="_blank">github.com/<?php echo $user . "/" . $repo ;?></a>
+					php Github updater<br />Repository <a href="https://github.com/<?php echo $user . "/" . $repo . '/tree/' . $branch ;?>" target="_blank">github.com/<?php echo $user . "/" . $repo ;?> branch: <?php echo $branch;?></a>
 				</h2>
 				<p>
-					Update your local installation from the "master" repository
+					Update your local installation from the  repository
         </p>
 <?php
   if(strlen($usage_password)>0){
