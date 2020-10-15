@@ -210,7 +210,9 @@ function DownloadMissingFiles($user,$repo,$not_matching,$commit_completed,$dir =
           $remoteurl = "https://raw.githubusercontent.com/$user/$repo/$branch/$filename";
           $filetmp = getSslPage($remoteurl);
           file_put_contents($dir . DIRECTORY_SEPARATOR . $filename,$filetmp);
-          }
+        }
+          DirectOut('Files copied');
+          DirectOut('Update completed');
       }else{
           DirectOut("replacing all files from zip",false);
           
